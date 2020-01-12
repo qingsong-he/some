@@ -1,0 +1,1 @@
+add_library(sub1 SHARED sub1.c)

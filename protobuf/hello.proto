@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package protohub;
+
+import "google/protobuf/any.proto";
+
+// protoc -I=. --go_out=. hello.proto
+
+message Foobar {
+    float a = 1;
+    double b = 2;
+    int32 c = 3;
+    string d = 4;
+    bool e = 5;
+    bytes f = 6;
+    repeated string g = 7;
+    google.protobuf.Any h = 8;
+    oneof i {
+        string j = 9;
+        double k = 10;
+    }
+    map<string, string> l = 11;
+    enum Foo {
+        A = 0;
+        B = 1;
+    }
+
+    Foo m = 12;
+}

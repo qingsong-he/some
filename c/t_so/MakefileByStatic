@@ -1,0 +1,15 @@
+all: a.out
+
+a.out: libso.a
+
+libso.a:
+	cc -c so.c
+	ar crv libso.a so.o
+
+a.out:
+	cc use.c -L. -l:libso.a
+
+clean:
+	-rm a.out
+	-rm so.o
+	-rm libso.a

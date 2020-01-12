@@ -1,0 +1,13 @@
+all: a.out
+
+a.out: libso.so
+
+libso.so:
+	cc -fPIC -shared -o libso.so so.c
+
+a.out:
+	cc use.c -L. -lso -Wl,-rpath,'$$ORIGIN'
+
+clean:
+	-rm a.out
+	-rm libso.so
