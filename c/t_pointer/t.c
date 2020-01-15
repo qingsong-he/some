@@ -23,6 +23,14 @@ int main(void) {
 	debug("%ld\n", sizeof(b)); // 0 
 	debug("%ld\n", sizeof(b) / sizeof(char)); // 0 
 
+	char* p1 = b;
+	debug("%ld\n", sizeof(p1)); // 8 
+	debug("%ld\n", sizeof(p1) / sizeof(char)); // 8 
+
+	char* p2 = &b;
+	debug("%ld\n", sizeof(p2)); // 8 
+	debug("%ld\n", sizeof(p2) / sizeof(char)); // 8 
+
 	char *c; 
 	debug("%ld\n", sizeof(c)); // 8 
 	debug("%ld\n", sizeof(char*)); // 8 
