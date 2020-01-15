@@ -1,6 +1,5 @@
 // ref https://banu.com/blog/2/how-to-use-epoll-a-complete-example-in-c/epoll-example.c
 
-#include "checkerror.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +10,7 @@
 #include <fcntl.h>
 #include <sys/epoll.h>
 #include <errno.h>
+#include <lcthw/dbg.h>
 
 #define MAXEVENTS 64
 
@@ -91,21 +91,21 @@ int main (int argc, char *argv[])
 	}
 
 	sfd = create_and_bind (argv[1]);
-	checkerror(sfd == -1);
+	check(sfd != -1, "create_and_bind");
 
 	s = make_socket_non_blocking (sfd);
-	checkerror(s == -1);
+	check(s != -1, "make_socket_non_blocking");
 
 	s = listen (sfd, SOMAXCONN);
-	checkerror(s == -1);
+	check(s != -1, "listen");
 
 	efd = epoll_create1 (0);
-	checkerror(efd == -1);
+	check(efd != -1, "epoll_create1");
 
 	event.data.fd = sfd;
 	event.events = EPOLLIN | EPOLLET;
 	s = epoll_ctl (efd, EPOLL_CTL_ADD, sfd, &event);
-	checkerror(s == -1);
+	check(s != -1, "epoll_ctl");
 
 	/* Buffer where events are returned */
 	events = calloc (MAXEVENTS, sizeof event);
@@ -171,12 +171,12 @@ int main (int argc, char *argv[])
 					/* Make the incoming socket non-blocking and add it to the
 					   list of fds to monitor. */
 					s = make_socket_non_blocking (infd);
-					checkerror(s == -1);
+					check(s != -1, "make_socket_non_blocking");
 
 					event.data.fd = infd;
 					event.events = EPOLLIN | EPOLLET;
 					s = epoll_ctl (efd, EPOLL_CTL_ADD, infd, &event);
-					checkerror(s == -1);
+					check(s != -1, "epoll_ctl");
 				}
 				continue;
 			}
@@ -216,7 +216,7 @@ int main (int argc, char *argv[])
 
 					/* Write the buffer to standard output */
 					s = write (1, buf, count);
-					checkerror(s == -1);
+					check(s != -1, "write");
 				}
 
 				if (done)
@@ -237,5 +237,8 @@ int main (int argc, char *argv[])
 	close (sfd);
 
 	return EXIT_SUCCESS;
+
+error:
+	return EXIT_FAILURE;
 }
 
