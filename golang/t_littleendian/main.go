@@ -4,16 +4,23 @@ import (
 	"bytes"
 	"encoding/binary"
 	. "github.com/qingsong-he/ce"
+	"sync"
+	"unsafe"
 )
 
+var isLittleEndian bool
+var onceByIsLittleEndian sync.Once
+
 func IsLittleEndian() bool {
-	var i uint16 = 0x0102
-	bytesBuf := bytes.NewBuffer(nil)
-	err := binary.Write(bytesBuf, binary.LittleEndian, i)
-	if err != nil {
-		panic(err)
-	}
-	return binary.LittleEndian.Uint16(bytesBuf.Bytes()) == i
+	onceByIsLittleEndian.Do(func() {
+		var i uint16 = 0x0102
+		pByUnSafe := unsafe.Pointer(&i)
+		pByteArray := (*[2]byte)(pByUnSafe)
+		if (*pByteArray)[0] == 0x02 {
+			isLittleEndian = true
+		}
+	})
+	return isLittleEndian
 }
 
 func Case1() {

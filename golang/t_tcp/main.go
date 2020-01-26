@@ -35,10 +35,14 @@ func main() {
 				}
 			}()
 			for {
-				conn.SetReadDeadline(time.Now().Add(time.Second * 60))
-				_, err := io.ReadFull(conn, recvBuf)
+				err := conn.SetReadDeadline(time.Now().Add(time.Second * 60))
 				ce.CheckError(err)
-				conn.Write(recvBuf)
+
+				_, err = io.ReadFull(conn, recvBuf)
+				ce.CheckError(err)
+
+				_, err = conn.Write(recvBuf)
+				ce.CheckError(err)
 			}
 		}()
 	}
