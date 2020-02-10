@@ -1,7 +1,7 @@
 package main
 
 //#cgo linux CFLAGS: -I./so
-//#cgo linux LDFLAGS: -L./so -lso
+//#cgo linux LDFLAGS: -L./so -lso -Wl,-rpath,$ORIGIN/so
 //#include "so.h"
 import "C"
 
