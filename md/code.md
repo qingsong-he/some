@@ -1,3 +1,23 @@
+### kafka
+
+```
+start kafka:
+    bin/zookeeper-server-start.sh config/zookeeper.properties
+    bin/kafka-server-start.sh config/server.properties
+
+list all topic:
+    bin/kafka-topics.sh --list --zookeeper localhost:2181
+
+list all groups:
+    bin/kafka-consumer-groups.sh --all-groups --bootstrap-server localhost:9092 --describe
+
+delete group:
+    bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --delete --group group1
+
+delete topic:
+    bin/kafka-topics.sh  --delete --zookeeper localhost:2181  --topic topic1 // config: delete.topic.enable=true
+```
+
 ### openssl
 
 ```
