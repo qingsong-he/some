@@ -7,7 +7,7 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	etcdnaming "github.com/coreos/etcd/clientv3/naming"
 	. "github.com/qingsong-he/ce"
-	"github.com/qingsong-he/testcode/golang/t_grpc/pb"
+	"github.com/qingsong-he/some/golang/t_grpc/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/naming"
 	"google.golang.org/grpc/peer"
