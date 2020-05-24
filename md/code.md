@@ -125,15 +125,23 @@ docker commit ubuntu1 foobar/myubuntu:v1.0
 docker run --name mysql1 -p 3308:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql:latest --character- set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
 docker run --net=host --name redis1 -p 6379:6379 -d redis:latest redis-server --appendonly yes
 docker run -d --name mongodb1 -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=root -p 27017:27017 mongo:3.6.6
+```
 
+### etcd
+```
 sudo docker exec -e "ETCDCTL_API=3" etcd1 etcdctl get "" --prefix
 sudo docker exec -e "ETCDCTL_API=3" etcd1 etcdctl lease list
-
+export "ETCDCTL_API=3" && ./etcdctl -w table endpoint --cluster health
+./etcdctl -w table endpoint --cluster status
+./etcdctl defrag --cluster
+./etcdctl alarm list
+./etcdctl alarm disarm
 ```
 
 ### linux cmds
 
 ```
+// 0 stdin, 1 stdout, 2 stderr, /dev/null
 nc -c -k -l 1234
 nc -c -k localhost 1234
 df -h
