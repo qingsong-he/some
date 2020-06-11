@@ -136,6 +136,7 @@ export "ETCDCTL_API=3" && ./etcdctl -w table endpoint --cluster health
 ./etcdctl defrag --cluster
 ./etcdctl alarm list
 ./etcdctl alarm disarm
+./etcd --auto-compaction-retention '10m' --quota-backend-bytes '8589934592' --max-request-bytes ‘1572864‘
 ```
 
 ### linux cmds
