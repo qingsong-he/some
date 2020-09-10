@@ -24,8 +24,14 @@ func case1() {
 	msg := "hello"
 
 	// enc with public key
-	msgByEnc, err := rsa.EncryptOAEP(h256, rand.Reader, &privKey.PublicKey, []byte(msg), nil)
+	msgByEnc, err := rsa.EncryptOAEP(nil, rand.Reader, &privKey.PublicKey, []byte(msg), nil)
 	ce.CheckError(err)
+	ce.Print(msgByEnc)
+	{
+		msgByEnc, err := rsa.EncryptOAEP(nil, rand.Reader, &privKey.PublicKey, []byte(msg), nil)
+		ce.CheckError(err)
+		ce.Print(msgByEnc)
+	}
 
 	// dec with private key
 	msgByDec, err := rsa.DecryptOAEP(h256, rand.Reader, privKey, msgByEnc, nil)

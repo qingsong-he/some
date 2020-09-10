@@ -10,11 +10,12 @@ type BiTreeNode struct {
 	right *BiTreeNode
 }
 type BiTree struct {
-	size int
-	root *BiTreeNode
+	size    int
+	root    *BiTreeNode
+	compare func(a, b interface{}) int
 }
 
-func New() *BiTree {
+func NewBiTree() *BiTree {
 	return &BiTree{
 		size: 0,
 		root: nil,
@@ -130,7 +131,7 @@ func (b *BiTreeNode) Right() *BiTreeNode {
 }
 
 func BiTreeMerge(left, right *BiTree, data interface{}) *BiTree {
-	n := New()
+	n := NewBiTree()
 	n.InsertLeft(nil, data)
 
 	if left == nil {

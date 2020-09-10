@@ -95,7 +95,7 @@ func insertInt(biTree *bitree.BiTree, ival int) {
 }
 
 func main() {
-	b1 := bitree.New()
+	b1 := bitree.NewBiTree()
 	insertInt(b1, 20)
 	insertInt(b1, 10)
 	insertInt(b1, 30)
