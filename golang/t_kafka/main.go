@@ -60,7 +60,7 @@ func kafkaProduceMsgBySarama(topicName string) {
 forLableByNotify:
 	for {
 		s := <-mainByExitAlarm
-		ce.Info(s.String())
+		ce.Print(s.String())
 		switch s {
 		case syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM:
 			producer.AsyncClose()
@@ -92,7 +92,7 @@ func kafkaConsumeMsgBySarama(groupIdByConsume string, topicNames ...string) {
 	cfg := sarama.NewConfig()
 	cfg.Consumer.Return.Errors = true
 	cfg.Consumer.Offsets.Initial = sarama.OffsetOldest
-	cfg.Version = sarama.V2_4_0_0
+	cfg.Version = sarama.V2_1_0_0
 	err := cfg.Validate()
 	ce.CheckError(err)
 
@@ -130,7 +130,7 @@ func kafkaConsumeMsgBySarama(groupIdByConsume string, topicNames ...string) {
 forLableByNotify:
 	for {
 		s := <-mainByExitAlarm
-		ce.Info(s.String())
+		ce.Print(s.String())
 		switch s {
 		case syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM:
 			consumerByGroup.Close()

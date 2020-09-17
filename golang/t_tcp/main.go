@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/qingsong-he/ce"
-	"go.uber.org/zap"
 	"io"
 	"net"
 	"os"
@@ -20,7 +19,7 @@ func main() {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			ce.Error("", zap.Error(err))
+			ce.Print(err)
 			runtime.Gosched()
 			continue
 		}
@@ -29,8 +28,8 @@ func main() {
 		go func() {
 			defer func() {
 				if errByPanic := recover(); errByPanic != nil {
-					if !ce.IsFromMe(errByPanic) {
-						ce.Error("", zap.Any("errByPanic", errByPanic))
+					if _, ok := ce.IsFromCe(errByPanic); !ok {
+						ce.Print(errByPanic)
 					}
 				}
 			}()
