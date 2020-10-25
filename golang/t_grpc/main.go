@@ -6,11 +6,20 @@ import (
 	"encoding/hex"
 	"github.com/coreos/etcd/clientv3"
 	etcdnaming "github.com/coreos/etcd/clientv3/naming"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
+	"github.com/opentracing/opentracing-go"
 	. "github.com/qingsong-he/ce"
 	"github.com/qingsong-he/some/golang/t_grpc/pb"
+	"github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go/config"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/naming"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
+	"io"
 	"net"
 	"os"
 	"os/signal"
@@ -22,6 +31,53 @@ func init() {
 	Print(os.Args[0])
 }
 
+func InitTracer(service string) (opentracing.Tracer, io.Closer) {
+	cfg := &config.Configuration{
+		ServiceName: service,
+		Sampler: &config.SamplerConfig{
+			Type:  "const",
+			Param: 1,
+		},
+		Reporter: &config.ReporterConfig{
+			LocalAgentHostPort: "localhost:6831",
+			LogSpans:           true,
+		},
+	}
+	tracer, closer, err := cfg.NewTracer(config.Logger(jaeger.StdLogger))
+	CheckError(err)
+	return tracer, closer
+}
+
+func client1(ctx context.Context) {
+	span, ctxByThis := opentracing.StartSpanFromContext(ctx, "client1")
+	defer span.Finish()
+	time.Sleep(1 * time.Second)
+	span.LogKV("c1", "c1")
+	client1Sub1(ctxByThis)
+}
+
+func client1Sub1(ctx context.Context) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "client1Sub1")
+	defer span.Finish()
+	time.Sleep(1 * time.Second)
+	span.LogKV("c1Sub1", "c1Sub1")
+}
+
+func server1(ctx context.Context) {
+	span, ctxByThis := opentracing.StartSpanFromContext(ctx, "server1")
+	defer span.Finish()
+	time.Sleep(1 * time.Second)
+	span.LogKV("s1", "s1")
+	server1Sub1(ctxByThis)
+}
+
+func server1Sub1(ctx context.Context) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "server1Sub1")
+	defer span.Finish()
+	time.Sleep(1 * time.Second)
+	span.LogKV("s1Sub1", "s1Sub1")
+}
+
 type msg struct{}
 
 func (*msg) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
@@ -29,6 +85,7 @@ func (*msg) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, 
 		Print(p.Addr.String())
 	}
 
+	server1(ctx)
 	h := sha1.Sum([]byte(in.Name))
 	return &pb.HelloReply{Message: hex.EncodeToString(h[:])}, nil
 }
@@ -39,6 +96,10 @@ var s = func(serverAddr string) {
 	defer func() {
 		recover()
 	}()
+
+	tracer, closer := InitTracer(serverName)
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
 
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   []string{"localhost:2379"},
@@ -80,7 +141,25 @@ var s = func(serverAddr string) {
 	lis, err := net.Listen("tcp", serverAddr)
 	CheckError(err)
 
-	grpcServer := grpc.NewServer()
+	// Define customfunc to handle panic
+	customFunc := func(p interface{}) (err error) {
+		return status.Errorf(codes.Unknown, "panic triggered: %v", p)
+	}
+	// Shared options for the logger, with a custom gRPC code to log level function.
+	opts := []grpc_recovery.Option{
+		grpc_recovery.WithRecoveryHandler(customFunc),
+	}
+
+	grpcServer := grpc.NewServer(
+		grpc_middleware.WithUnaryServerChain(
+			grpc_recovery.UnaryServerInterceptor(opts...),
+			grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		),
+		grpc_middleware.WithStreamServerChain(
+			grpc_recovery.StreamServerInterceptor(opts...),
+			grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		),
+	)
 	pb.RegisterGreeterServer(grpcServer, &msg{})
 
 	err = grpcServer.Serve(lis)
@@ -92,6 +171,10 @@ var c = func() {
 		recover()
 	}()
 
+	tracer, closer := InitTracer(serverName + "ByClient")
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
+
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   []string{"localhost:2379"},
 		DialTimeout: 2 * time.Second,
@@ -100,7 +183,17 @@ var c = func() {
 	defer cli.Close()
 
 	r := &etcdnaming.GRPCResolver{Client: cli}
-	conn, err := grpc.Dial(serverName, grpc.WithInsecure(), grpc.WithBalancer(grpc.RoundRobin(r)), grpc.WithTimeout(2*time.Second))
+	conn, err := grpc.Dial(
+		serverName,
+		grpc.WithInsecure(),
+		grpc.WithBalancer(grpc.RoundRobin(r)),
+		grpc.WithTimeout(2*time.Second),
+		grpc.WithUnaryInterceptor(
+			grpc_opentracing.UnaryClientInterceptor(
+				grpc_opentracing.WithTracer(tracer),
+			),
+		),
+	)
 	CheckError(err)
 	defer conn.Close()
 	c := pb.NewGreeterClient(conn)
@@ -111,11 +204,20 @@ var c = func() {
 				recover()
 			}()
 
-			time.Sleep(1 * time.Second)
-			resp, err := c.SayHello(context.Background(), &pb.HelloRequest{Name: time.Now().String()})
+			span := tracer.StartSpan("callSayHello")
+			span.LogKV("root", "root")
+			span.SetTag("rootTag", "rootTag")
+			defer span.Finish()
+			ctx := opentracing.ContextWithSpan(context.Background(), span)
+
+			client1(ctx)
+
+			resp, err := c.SayHello(ctx, &pb.HelloRequest{Name: time.Now().String()})
 			CheckError(err)
 			Print(resp.Message)
+
 		}()
+		time.Sleep(30 * time.Second)
 	}
 }
 
