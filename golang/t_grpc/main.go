@@ -43,7 +43,7 @@ func InitTracer(service string) (opentracing.Tracer, io.Closer) {
 			LogSpans:           true,
 		},
 	}
-	tracer, closer, err := cfg.NewTracer(config.Logger(jaeger.StdLogger))
+	tracer, closer, err := cfg.NewTracer(config.Logger(jaeger.NullLogger))
 	CheckError(err)
 	return tracer, closer
 }
@@ -51,7 +51,6 @@ func InitTracer(service string) (opentracing.Tracer, io.Closer) {
 func client1(ctx context.Context) {
 	span, ctxByThis := opentracing.StartSpanFromContext(ctx, "client1")
 	defer span.Finish()
-	time.Sleep(1 * time.Second)
 	span.LogKV("c1", "c1")
 	client1Sub1(ctxByThis)
 }
@@ -59,14 +58,12 @@ func client1(ctx context.Context) {
 func client1Sub1(ctx context.Context) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "client1Sub1")
 	defer span.Finish()
-	time.Sleep(1 * time.Second)
 	span.LogKV("c1Sub1", "c1Sub1")
 }
 
 func server1(ctx context.Context) {
 	span, ctxByThis := opentracing.StartSpanFromContext(ctx, "server1")
 	defer span.Finish()
-	time.Sleep(1 * time.Second)
 	span.LogKV("s1", "s1")
 	server1Sub1(ctxByThis)
 }
@@ -74,7 +71,6 @@ func server1(ctx context.Context) {
 func server1Sub1(ctx context.Context) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "server1Sub1")
 	defer span.Finish()
-	time.Sleep(1 * time.Second)
 	span.LogKV("s1Sub1", "s1Sub1")
 }
 
@@ -217,7 +213,7 @@ var c = func() {
 			Print(resp.Message)
 
 		}()
-		time.Sleep(30 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 
