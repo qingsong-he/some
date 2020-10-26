@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package pb;
+
+// protoc -I=.  --go_out=plugins=grpc:. world.proto
+
+service Greeter {
+    rpc SayHello (stream HelloRequest) returns (HelloReply);
+    rpc SayHello1 (HelloRequest) returns (stream HelloReply);
+    rpc SayHello2 (stream HelloRequest) returns (stream HelloReply);
+}
+
+message HelloRequest {
+    string name = 1;
+}
+
+message HelloReply {
+    string message = 1;
+}
