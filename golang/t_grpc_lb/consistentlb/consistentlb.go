@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/naming"
 	"google.golang.org/grpc/status"
 	"io"
+	"strconv"
 	"sync"
 )
 
@@ -15,8 +16,11 @@ var (
 	noAddrErr = status.Errorf(codes.Unavailable, "there is no address available")
 )
 
-func ConsistentLB(r naming.Resolver) grpc.Balancer {
-	return &consistentLB{r: r}
+func ConsistentLB(r naming.Resolver, serverCount int64) grpc.Balancer {
+	return &consistentLB{
+		serverCount: serverCount,
+		r:           r,
+	}
 }
 
 type addrInfo struct {
@@ -25,12 +29,13 @@ type addrInfo struct {
 }
 
 type consistentLB struct {
-	r      naming.Resolver
-	w      naming.Watcher
-	addrs  []*addrInfo // all the addresses the client should potentially connect
-	mu     sync.Mutex
-	addrCh chan []grpc.Address // the channel to notify gRPC internals the list of addresses the client should connect to.
-	done   bool                // The Balancer is closed.
+	serverCount int64
+	r           naming.Resolver
+	w           naming.Watcher
+	addrs       []*addrInfo // all the addresses the client should potentially connect
+	mu          sync.Mutex
+	addrCh      chan []grpc.Address // the channel to notify gRPC internals the list of addresses the client should connect to.
+	done        bool                // The Balancer is closed.
 }
 
 func (rr *consistentLB) watchAddrUpdates() error {
@@ -154,8 +159,14 @@ func (rr *consistentLB) Get(ctx context.Context, opts grpc.BalancerGetOptions) (
 	}
 
 	for _, v := range rr.addrs {
-		if v.connected {
-			if int64(len(ctx.Value("name").(string)))%2 == int64(v.addr.Metadata.(float64))%2 {
+		if v.connected && v.addr.Metadata != nil {
+			name := ctx.Value("name").(string)
+			nameByInt, err1 := strconv.Atoi(name)
+			if err1 != nil {
+				err = err1
+				return
+			}
+			if int64(nameByInt)%rr.serverCount == int64(v.addr.Metadata.(float64)) {
 				addr = v.addr
 				return
 			}
