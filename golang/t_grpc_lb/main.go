@@ -104,7 +104,7 @@ func _regSelf(cli *clientv3.Client, serverName, serverAddr string, index int) {
 				func() {
 					defer myRecover()
 					if !ok {
-						ctx := context.Background()
+						ctx := r.Client.Ctx()
 						leaseId, err = r.Client.Grant(ctx, 4)
 						ce.CheckError(err)
 						keepAliveChan, err = r.Client.KeepAlive(ctx, leaseId.ID)
